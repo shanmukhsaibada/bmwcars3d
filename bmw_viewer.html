@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BMW 3D Viewer</title>
+  <title>BMW 3D Viewer - Debug</title>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: #111; color: white; }
     canvas { width: 100%; height: 100vh; display: block; }
   </style>
 </head>
 <body>
-  <!-- Load Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -21,32 +20,67 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Orbit controls
+    // Controls
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-    // Light
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-    scene.add(light);
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    scene.add(hemiLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
 
-    // ✅ Load model from same GitHub Pages domain (avoids CORS issues)
+    // ✅ Model path (must exist in your repo)
     const defaultUrl = "https://shanmukhsaibada.github.io/bmwcars3d/models/bmw_m850.glb";
 
     const loader = new THREE.GLTFLoader();
-    loader.load(defaultUrl, function (gltf) {
-      scene.add(gltf.scene);
-      gltf.scene.scale.set(10, 10, 10); // Bigger scale
-    }, undefined, function (error) {
-      console.error("Error loading model:", error);
-    });
+    loader.load(
+      defaultUrl,
+      function (gltf) {
+        console.log("✅ Model loaded:", defaultUrl);
 
-    camera.position.z = 10;
+        // Add model
+        scene.add(gltf.scene);
 
+        // Scale and position
+        gltf.scene.scale.set(10, 10, 10);
+        gltf.scene.position.set(0, -1, 0);
+
+        // Add bounding box helper
+        const box = new THREE.BoxHelper(gltf.scene, 0xff0000);
+        scene.add(box);
+
+        // Auto-fit camera to model
+        const box3 = new THREE.Box3().setFromObject(gltf.scene);
+        const size = box3.getSize(new THREE.Vector3()).length();
+        const center = box3.getCenter(new THREE.Vector3());
+        controls.target.copy(center);
+        camera.position.copy(center);
+        camera.position.z += size / 2;
+        camera.position.y += size / 5;
+        camera.updateProjectionMatrix();
+      },
+      undefined,
+      function (error) {
+        console.error("❌ Error loading model:", error);
+        alert("Failed to load model. See console for details.");
+      }
+    );
+
+    // Animate
     function animate() {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
       controls.update();
     }
     animate();
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
   </script>
 </body>
 </html>
