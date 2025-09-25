@@ -1,82 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>BMW 3D Viewer</title>
-  <style>
-    body { margin: 0; overflow: hidden; background: transparent; }
-    canvas { width: 100%; height: 100vh; display: block; }
-  </style>
-</head>
-<body>
-  <!-- Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-  <script>
+<script>
     const scene = new THREE.Scene();
-
-    const camera = new THREE.PerspectiveCamera(
-      60, window.innerWidth / window.innerHeight, 0.1, 1000
-    );
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
-
-    // Lights
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    scene.add(hemiLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 10, 7);
-    scene.add(dirLight);
-
-    // Get URL param
-    const urlParams = new URLSearchParams(window.location.search);
-    const modelParam = urlParams.get("model");
-    const defaultUrl = "https://shanmukhsaibada.github.io/bmwcars3d/models/bmw_m850.glb";
-    const modelUrl = modelParam || defaultUrl;
+    controls.enableZoom = true;
+    controls.enablePan = false;
 
     const loader = new THREE.GLTFLoader();
-    loader.load(
-      modelUrl,
-      function (gltf) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelUrl = urlParams.get('model');
+
+    loader.load(modelUrl, function (gltf) {
         const model = gltf.scene;
+
+        // ✅ Slight squeeze vertically
+        model.scale.set(1, 0.9, 1); 
+
         scene.add(model);
 
-        model.scale.set(10, 10, 10);
-
-        // Auto-fit model
+        // ✅ Auto-fit and move camera back
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3()).length();
         const center = box.getCenter(new THREE.Vector3());
 
         controls.target.copy(center);
-        camera.position.copy(center);
-        camera.position.z += size / 1.5;  // zoom out more
-        camera.position.y += size / 6;    // raise camera
+
+        const fitOffset = 1.4; // <-- increase to push car further back
+        const maxDim = Math.max(box.getSize(new THREE.Vector3()).x, box.getSize(new THREE.Vector3()).y, box.getSize(new THREE.Vector3()).z);
+        const fov = camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * fitOffset;
+
+        camera.position.set(center.x, center.y + maxDim / 8, center.z + cameraZ);
+        camera.lookAt(center);
         camera.updateProjectionMatrix();
-      },
-      undefined,
-      function (error) {
-        console.error("❌ Error loading model:", error);
-      }
-    );
+
+        // Lighting
+        const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+        scene.add(light);
+
+        animate();
+    });
 
     function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-      controls.update();
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
     }
-    animate();
 
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     });
-  </script>
-</body>
-</html>
+</script>
