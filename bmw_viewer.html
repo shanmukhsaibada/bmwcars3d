@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BMW 3D Viewer</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { width: 100%; height: 100vh; display: block; }
+  </style>
+</head>
+<body>
+  <!-- Load Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    // Setup scene, camera, renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Controls (rotate/zoom with mouse)
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    // Lighting
+    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+    scene.add(light);
+
+    // ✅ Default car: BMW M850 from your GitHub
+    const defaultUrl = "https://raw.githubusercontent.com/shanmukhsaibada/bmwcars3d/main/models/bmw_m850.glb";
+
+    // Allow Power BI slicer to override if parameter passed
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelUrl = urlParams.get("model_url") || defaultUrl;
+
+    // Load model
+    const loader = new THREE.GLTFLoader();
+    loader.load(modelUrl, function (gltf) {
+      scene.add(gltf.scene);
+      gltf.scene.scale.set(2, 2, 2); // adjust size
+    });
+
+    // Camera position
+    camera.position.z = 5;
+
+    // Animate render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+      controls.update();
+    }
+    animate();
+  </script>
+</body>
+</html>
