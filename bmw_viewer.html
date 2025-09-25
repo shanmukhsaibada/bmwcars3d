@@ -15,38 +15,32 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    // Setup scene, camera, renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Controls (rotate/zoom with mouse)
+    // Orbit controls
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-    // Lighting
+    // Light
     const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(light);
 
-    // ✅ Default car: BMW M850 from your GitHub
-    const defaultUrl = "https://raw.githubusercontent.com/shanmukhsaibada/bmwcars3d/main/models/bmw_m850.glb";
+    // ✅ Load model from same GitHub Pages domain (avoids CORS issues)
+    const defaultUrl = "https://shanmukhsaibada.github.io/bmwcars3d/models/bmw_m850.glb";
 
-    // Allow Power BI slicer to override if parameter passed
-    const urlParams = new URLSearchParams(window.location.search);
-    const modelUrl = urlParams.get("model_url") || defaultUrl;
-
-    // Load model
     const loader = new THREE.GLTFLoader();
-    loader.load(modelUrl, function (gltf) {
+    loader.load(defaultUrl, function (gltf) {
       scene.add(gltf.scene);
-      gltf.scene.scale.set(2, 2, 2); // adjust size
+      gltf.scene.scale.set(10, 10, 10); // Bigger scale
+    }, undefined, function (error) {
+      console.error("Error loading model:", error);
     });
 
-    // Camera position
-    camera.position.z = 5;
+    camera.position.z = 10;
 
-    // Animate render loop
     function animate() {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
