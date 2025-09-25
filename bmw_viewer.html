@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BMW 3D Viewer - Dynamic</title>
+  <title>BMW 3D Viewer</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #111; color: white; }
-    canvas { width: 100%; height: 100vh; display: block; }
+    body { margin: 0; overflow: hidden; background: transparent; }
+    canvas { width: 100%; height: 100vh; display: block; background: transparent; }
   </style>
 </head>
 <body>
@@ -14,42 +14,43 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <script>
+    // --- Scene Setup ---
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({antialias: true});
+    const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+    renderer.setClearColor(0x000000, 0); // transparent background
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-    // Lighting
+    // Lights
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     scene.add(hemiLight);
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(5, 10, 7);
     scene.add(dirLight);
 
-    // ✅ Dynamic model URL from query parameter
+    // --- Get model from querystring ---
     const urlParams = new URLSearchParams(window.location.search);
-    const modelUrl = urlParams.get("model_url") || "https://shanmukhsaibada.github.io/bmwcars3d/models/bmw_m850.glb";
+    const modelUrl = urlParams.get("model") || "https://shanmukhsaibada.github.io/bmwcars3d/models/bmw_m850.glb";
 
+    console.log("🔗 Loading model:", modelUrl);
+
+    // --- Load GLTF model ---
     const loader = new THREE.GLTFLoader();
     loader.load(
       modelUrl,
-      function(gltf) {
-        console.log("✅ Model loaded:", modelUrl);
-        scene.add(gltf.scene);
-        gltf.scene.scale.set(10, 10, 10);
-        gltf.scene.position.set(0, -1, 0);
+      function (gltf) {
+        const model = gltf.scene;
+        model.scale.set(8, 8, 8);
+        model.position.set(0, -1, 0);
+        scene.add(model);
 
-        // Bounding box
-        const box = new THREE.BoxHelper(gltf.scene, 0xff0000);
-        scene.add(box);
-
-        // Auto-fit camera
-        const box3 = new THREE.Box3().setFromObject(gltf.scene);
-        const size = box3.getSize(new THREE.Vector3()).length();
-        const center = box3.getCenter(new THREE.Vector3());
+        // Auto-fit camera to model
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3()).length();
+        const center = box.getCenter(new THREE.Vector3());
         controls.target.copy(center);
         camera.position.copy(center);
         camera.position.z += size / 2;
@@ -57,14 +58,12 @@
         camera.updateProjectionMatrix();
       },
       undefined,
-      function(error) {
+      function (error) {
         console.error("❌ Error loading model:", error);
-        alert("Failed to load model. See console for details.");
       }
     );
 
-    camera.position.set(0, 2, 10);
-
+    // --- Animation Loop ---
     function animate() {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
@@ -72,6 +71,7 @@
     }
     animate();
 
+    // Resize
     window.addEventListener("resize", () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
