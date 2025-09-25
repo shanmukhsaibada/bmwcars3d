@@ -1,78 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>BMW 3D Viewer</title>
-    <style>
-        body { margin: 0; background: transparent; overflow: hidden; }
-        canvas { display: block; }
-    </style>
+  <meta charset="UTF-8">
+  <title>BMW 3D Viewer</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: transparent; }
+    canvas { width: 100%; height: 100vh; display: block; }
+  </style>
 </head>
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/controls/OrbitControls.js"></script>
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
-    <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+  <script>
+    const scene = new THREE.Scene();
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableZoom = true;
-        controls.enablePan = false;
+    const camera = new THREE.PerspectiveCamera(
+      60, window.innerWidth / window.innerHeight, 0.1, 1000
+    );
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-        const loader = new THREE.GLTFLoader();
-        const urlParams = new URLSearchParams(window.location.search);
-        const modelUrl = urlParams.get('model');
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-        loader.load(modelUrl, function (gltf) {
-            const model = gltf.scene;
+    // Lights
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    scene.add(hemiLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
 
-            // ✅ Squeeze car vertically by 30%
-            model.scale.set(1, 0.7, 1);
+    // Get URL param
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelParam = urlParams.get("model");
+    const defaultUrl = "https://shanmukhsaibada.github.io/bmwcars3d/models/bmw_m850.glb";
+    const modelUrl = modelParam || defaultUrl;
 
-            scene.add(model);
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      modelUrl,
+      function (gltf) {
+        const model = gltf.scene;
+        scene.add(model);
 
-            // ✅ Auto-fit model & center it
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3()).length();
-            const center = box.getCenter(new THREE.Vector3());
+        model.scale.set(10, 10, 10);
 
-            controls.target.copy(center);
+        // Auto-fit model
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3()).length();
+        const center = box.getCenter(new THREE.Vector3());
 
-            const fitOffset = 1.4; // push camera back
-            const maxDim = Math.max(box.getSize(new THREE.Vector3()).x, box.getSize(new THREE.Vector3()).y, box.getSize(new THREE.Vector3()).z);
-            const fov = camera.fov * (Math.PI / 180);
-            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * fitOffset;
+        controls.target.copy(center);
+        camera.position.copy(center);
+        camera.position.z += size / 1.5;  // zoom out more
+        camera.position.y += size / 6;    // raise camera
+        camera.updateProjectionMatrix();
+      },
+      undefined,
+      function (error) {
+        console.error("❌ Error loading model:", error);
+      }
+    );
 
-            camera.position.set(center.x, center.y + maxDim / 8, center.z + cameraZ);
-            camera.lookAt(center);
-            camera.updateProjectionMatrix();
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+      controls.update();
+    }
+    animate();
 
-            // ✅ Lighting setup
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-            scene.add(hemiLight);
-
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(10, 10, 10);
-            scene.add(dirLight);
-
-            animate();
-        });
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
 </body>
 </html>
